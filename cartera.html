@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cartera — Gestión de Préstamos</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f5f6f8; --surface:#ffffff; --surface2:#f0f2f5; --surface3:#e8ecf0;
+  --border:#d4d9e0; --border2:#b8c0cc;
+  --navy:#1b3a5c; --navy2:#2c5f8a; --navy3:#122940;
+  --green:#2e7d52; --red:#c0392b; --yellow:#c07d12;
+  --text:#1a2533; --muted:#6b7a8d;
+  --mono:'DM Mono',monospace; --sans:'Syne',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;overflow-x:hidden}
+
+/* HEADER */
+.header{background:var(--navy);border-bottom:1px solid var(--navy3);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100}
+.logo{font-family:var(--sans);font-weight:800;font-size:1.15rem;letter-spacing:.18em;color:#fff}
+.logo span{color:rgba(255,255,255,.5);font-weight:400;font-size:.75rem;letter-spacing:.12em;margin-left:.6rem}
+.badge{font-size:.68rem;letter-spacing:.1em;padding:.2rem .6rem;border:1px solid rgba(255,255,255,.25);border-radius:2px;color:rgba(255,255,255,.6)}
+
+/* TABS */
+.tabs{background:var(--navy);border-bottom:1px solid var(--navy3);display:flex;overflow-x:auto;padding:0 2rem}
+.tabs::-webkit-scrollbar{height:3px}
+.tabs::-webkit-scrollbar-thumb{background:rgba(255,255,255,.3)}
+.tab-btn{background:none;border:none;cursor:pointer;font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;color:rgba(255,255,255,.5);padding:.85rem 1.4rem;white-space:nowrap;transition:color .2s;border-bottom:2px solid transparent}
+.tab-btn:hover{color:rgba(255,255,255,.85)}
+.tab-btn.active{color:#fff;border-bottom-color:var(--green)}
+.tab-icon{margin-right:.4rem}
+
+/* LAYOUT */
+.main{padding:2rem;max-width:1500px;margin:0 auto}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+.section-header{margin-bottom:1.5rem;display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.section-title{font-family:var(--sans);font-size:1.5rem;font-weight:700;color:var(--text);letter-spacing:-.01em}
+.section-sub{font-size:.72rem;color:var(--muted);letter-spacing:.06em;margin-top:.25rem}
+
+/* KPI CARDS */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:1rem;margin-bottom:2rem}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1.1rem 1.2rem;position:relative;overflow:hidden;transition:border-color .2s;box-shadow:0 1px 3px rgba(27,58,92,.06)}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--navy)}
+.kpi-card.green::before{background:var(--green)}
+.kpi-card.yellow::before{background:var(--yellow)}
+.kpi-card.red::before{background:var(--red)}
+.kpi-card:hover{border-color:var(--border2);box-shadow:0 2px 8px rgba(27,58,92,.1)}
+.kpi-label{font-size:.63rem;letter-spacing:.1em;color:var(--muted);margin-bottom:.5rem;text-transform:uppercase}
+.kpi-value{font-family:var(--sans);font-size:1.5rem;font-weight:700;color:var(--text);line-height:1}
+.kpi-value.mono{font-family:var(--mono);font-size:1.2rem}
+.kpi-sub{font-size:.63rem;color:var(--muted);margin-top:.3rem}
+
+/* TABLES */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:4px;overflow:auto;margin-bottom:2rem;box-shadow:0 1px 3px rgba(27,58,92,.06)}
+.table-wrap::-webkit-scrollbar{height:6px;width:6px}
+.table-wrap::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+table{width:100%;border-collapse:collapse;font-size:.72rem}
+thead th{background:var(--navy);color:rgba(255,255,255,.8);font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;padding:.65rem .9rem;text-align:left;white-space:nowrap;border-bottom:1px solid var(--navy3);position:sticky;top:0;z-index:2;font-weight:500}
+thead th.num{text-align:right}
+tbody tr{border-bottom:1px solid var(--border);transition:background .15s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--surface2)}
+tbody tr.total-row{background:var(--surface3);border-top:1px solid var(--border2)}
+tbody tr.total-row td{font-weight:600;color:var(--navy)}
+td{padding:.55rem .9rem;color:var(--text);vertical-align:middle}
+td.num{text-align:right;font-family:var(--mono)}
+td.muted{color:var(--muted)}
+td.mono{font-family:var(--mono)}
+
+/* BADGES */
+.bt{display:inline-block;font-size:.6rem;padding:.2rem .55rem;border-radius:2px;letter-spacing:.06em;font-family:var(--mono);font-weight:500}
+.b-activo{background:rgba(46,125,82,.1);color:#1a5c3a;border:1px solid rgba(46,125,82,.3)}
+.b-inactivo{background:rgba(107,122,141,.1);color:#4a5568;border:1px solid rgba(107,122,141,.3)}
+.b-mora{background:rgba(192,57,43,.1);color:#8b2519;border:1px solid rgba(192,57,43,.3)}
+.b-pagado{background:rgba(46,125,82,.1);color:#1a5c3a;border:1px solid rgba(46,125,82,.25)}
+.b-pendiente{background:rgba(192,125,18,.1);color:#7a4f0a;border:1px solid rgba(192,125,18,.3)}
+.b-atrasado{background:rgba(192,57,43,.1);color:#8b2519;border:1px solid rgba(192,57,43,.3)}
+.b-aldia{background:rgba(46,125,82,.1);color:#1a5c3a;border:1px solid rgba(46,125,82,.25)}
+.b-leve{background:rgba(192,125,18,.1);color:#7a4f0a;border:1px solid rgba(192,125,18,.25)}
+.b-moderado{background:rgba(192,57,43,.08);color:#8b2519;border:1px solid rgba(192,57,43,.2)}
+.b-critico{background:rgba(192,57,43,.15);color:#8b2519;border:1px solid rgba(192,57,43,.35)}
+.b-simple{background:rgba(27,58,92,.08);color:var(--navy);border:1px solid rgba(27,58,92,.2)}
+.b-compuesto{background:rgba(44,95,138,.1);color:var(--navy2);border:1px solid rgba(44,95,138,.25)}
+.b-transferencia{background:rgba(46,125,82,.06);color:#1a5c3a;border:1px solid rgba(46,125,82,.15)}
+
+/* ROI bar */
+.roi-bar{display:flex;align-items:center;gap:.5rem}
+.bar-track{flex:1;height:5px;background:var(--border);border-radius:3px;min-width:45px}
+.bar-fill{height:100%;border-radius:3px;background:var(--green);transition:width .5s}
+.bar-fill.med{background:var(--yellow)}
+.bar-fill.low{background:var(--red)}
+.bar-val{font-size:.68rem;font-family:var(--mono);min-width:36px;text-align:right;color:var(--muted)}
+
+/* Score semáforo */
+.score-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:.4rem;vertical-align:middle}
+.dot-green{background:var(--green)}
+.dot-yellow{background:var(--yellow)}
+.dot-red{background:var(--red)}
+
+/* FORMS */
+.form-panel{display:none;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1.5rem;margin-bottom:2rem;box-shadow:0 1px 3px rgba(27,58,92,.06)}
+.form-panel.open{display:block}
+.form-title{font-family:var(--sans);font-size:.9rem;font-weight:600;color:var(--navy);margin-bottom:1.2rem;letter-spacing:.04em}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:.75rem}
+.form-group{display:flex;flex-direction:column;gap:.3rem}
+.form-group label{font-size:.62rem;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+.form-group input,.form-group select{background:var(--surface2);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:var(--mono);font-size:.75rem;padding:.5rem .7rem;outline:none;transition:border-color .2s}
+.form-group input:focus,.form-group select:focus{border-color:var(--navy)}
+.form-group select option{background:var(--surface)}
+.form-note{font-size:.65rem;color:var(--muted);margin-top:.3rem;padding:.4rem .6rem;background:rgba(27,58,92,.04);border-left:2px solid var(--navy);border-radius:0 2px 2px 0}
+.form-actions{display:flex;gap:.75rem;margin-top:1rem}
+.btn{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;padding:.55rem 1.2rem;border:none;border-radius:3px;cursor:pointer;transition:all .2s}
+.btn-primary{background:var(--navy);color:#fff}
+.btn-primary:hover{background:var(--navy2)}
+.btn-green{background:var(--green);color:#fff}
+.btn-green:hover{background:#235f3e}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--border2);color:var(--text)}
+.toggle-btn{font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;padding:.4rem 1rem;background:transparent;color:var(--navy);border:1px solid var(--navy);border-radius:3px;cursor:pointer;transition:all .2s}
+.toggle-btn:hover{background:rgba(27,58,92,.08)}
+
+/* INSTRUCCIONES */
+.inst-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem}
+.inst-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1.2rem;box-shadow:0 1px 3px rgba(27,58,92,.06)}
+.inst-num{font-family:var(--sans);font-size:1.4rem;font-weight:800;color:var(--navy);opacity:.15;line-height:1;margin-bottom:.5rem}
+.inst-title{font-family:var(--sans);font-size:.85rem;font-weight:700;color:var(--navy);margin-bottom:.5rem}
+.inst-text{font-size:.7rem;color:var(--muted);line-height:1.6}
+.formula-box{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1rem 1.2rem;margin-top:1.5rem}
+.formula-title{font-family:var(--sans);font-size:.75rem;font-weight:700;color:var(--navy);margin-bottom:.8rem}
+.formula-row{display:flex;gap:1rem;padding:.35rem 0;border-bottom:1px solid var(--border);align-items:baseline}
+.formula-row:last-child{border-bottom:none}
+.f-name{font-size:.68rem;font-weight:500;color:var(--text);min-width:130px}
+.f-expr{font-family:var(--mono);font-size:.68rem;color:var(--navy2)}
+
+/* Calcular preview */
+.calc-preview{background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:.6rem .9rem;margin-top:.75rem;font-size:.7rem;color:var(--navy);font-family:var(--mono);display:none}
+.calc-preview.show{display:block}
+
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--surface2)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">CARTERA <span>GESTIÓN DE PRÉSTAMOS</span></div>
+  <div style="display:flex;gap:.75rem;align-items:center">
+    <span class="badge" id="badge-activos">— activos</span>
+    <span class="badge">LocalStorage</span>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab-btn active" onclick="showTab('dashboard')"><span class="tab-icon">◈</span>Dashboard</button>
+  <button class="tab-btn" onclick="showTab('clientes')"><span class="tab-icon">▦</span>Clientes</button>
+  <button class="tab-btn" onclick="showTab('prestamos')"><span class="tab-icon">◆</span>Préstamos</button>
+  <button class="tab-btn" onclick="showTab('plan')"><span class="tab-icon">⬡</span>Plan de Pagos</button>
+  <button class="tab-btn" onclick="showTab('pagos')"><span class="tab-icon">◎</span>Pagos Realizados</button>
+  <button class="tab-btn" onclick="showTab('instrucciones')"><span class="tab-icon">◻</span>Instrucciones</button>
+</nav>
+
+<main class="main">
+
+<!-- ══ DASHBOARD ══ -->
+<section class="tab-panel active" id="tab-dashboard">
+  <div class="section-header">
+    <div>
+      <div class="section-title">Dashboard</div>
+      <div class="section-sub">KPIs AUTOMÁTICOS · CARTERA EN TIEMPO REAL</div>
+    </div>
+  </div>
+  <div class="kpi-grid" id="kpi-dash"></div>
+  <div class="section-header" style="margin-top:.5rem">
+    <div class="section-title" style="font-size:1rem">Resumen de Préstamos</div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>ID Préstamo</th><th>Cliente</th><th class="num">Monto</th>
+        <th class="num">Tasa Mens.</th><th>Plazo</th><th>Tipo</th>
+        <th class="num">Monto Total</th><th class="num">ROI %</th>
+        <th>Estado</th><th class="num">Cuotas Pend.</th><th class="num">Saldo Rest.</th>
+      </tr></thead>
+      <tbody id="tbody-dash"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══ CLIENTES ══ -->
+<section class="tab-panel" id="tab-clientes">
+  <div class="section-header">
+    <div>
+      <div class="section-title">Clientes</div>
+      <div class="section-sub">REGISTRO DE CLIENTES · SCORE CREDITICIO AUTOMÁTICO</div>
+    </div>
+    <button class="toggle-btn" onclick="toggleForm('form-cliente')">+ Nuevo Cliente</button>
+  </div>
+  <div class="form-panel" id="form-cliente">
+    <div class="form-title">▌ Registrar Cliente</div>
+    <div class="form-grid">
+      <div class="form-group"><label>ID Cliente</label><input type="text" id="c-id" placeholder="CL007"></div>
+      <div class="form-group"><label>Nombre</label><input type="text" id="c-nombre" placeholder="Juan"></div>
+      <div class="form-group"><label>Apellido</label><input type="text" id="c-apellido" placeholder="Pérez"></div>
+      <div class="form-group"><label>DNI</label><input type="text" id="c-dni" placeholder="12345678"></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="addCliente()">Agregar</button>
+      <button class="btn btn-ghost" onclick="toggleForm('form-cliente')">Cancelar</button>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>ID Cliente</th><th>Nombre</th><th>Apellido</th><th>DNI</th>
+        <th class="num">Préstamos</th><th class="num">Capital Total</th>
+        <th class="num">Cuotas Pend.</th><th class="num">Cuotas Atras.</th><th>Score</th>
+      </tr></thead>
+      <tbody id="tbody-clientes"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══ PRÉSTAMOS ══ -->
+<section class="tab-panel" id="tab-prestamos">
+  <div class="section-header">
+    <div>
+      <div class="section-title">Préstamos</div>
+      <div class="section-sub">REGISTRO · TASA · PLAZO · MONTO TOTAL AUTOMÁTICO</div>
+    </div>
+    <button class="toggle-btn" onclick="toggleForm('form-prestamo')">+ Nuevo Préstamo</button>
+  </div>
+  <div class="form-panel" id="form-prestamo">
+    <div class="form-title">▌ Registrar Préstamo</div>
+    <div class="form-grid">
+      <div class="form-group"><label>ID Préstamo</label><input type="text" id="p-id" placeholder="PR008"></div>
+      <div class="form-group"><label>ID Cliente</label>
+        <select id="p-cliente"><option value="">— Seleccionar —</option></select>
+      </div>
+      <div class="form-group"><label>Fecha Otorg.</label><input type="date" id="p-fecha"></div>
+      <div class="form-group"><label>Monto Prestado ($)</label><input type="number" id="p-monto" placeholder="100000" oninput="calcPreview()"></div>
+      <div class="form-group"><label>Tasa % Mensual</label><input type="number" id="p-tasa" step="0.5" placeholder="20" oninput="calcPreview()"></div>
+      <div class="form-group"><label>Plazo (meses)</label><input type="number" id="p-plazo" placeholder="1" oninput="calcPreview()"></div>
+      <div class="form-group"><label>Tipo Interés</label>
+        <select id="p-tipo" onchange="calcPreview()">
+          <option value="simple">Simple</option>
+          <option value="compuesto">Compuesto</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Estado</label>
+        <select id="p-estado">
+          <option value="activo">Activo</option>
+          <option value="inactivo">Inactivo</option>
+          <option value="mora">Mora</option>
+        </select>
+      </div>
+    </div>
+    <div class="calc-preview" id="calc-preview"></div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="addPrestamo()">Agregar</button>
+      <button class="btn btn-ghost" onclick="toggleForm('form-prestamo')">Cancelar</button>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>ID</th><th>Cliente</th><th>Fecha Otorg.</th>
+        <th class="num">Monto</th><th class="num">Tasa Mens.%</th><th class="num">Tasa Anual%</th>
+        <th class="num">Plazo</th><th>Tipo</th>
+        <th class="num">Monto Total</th><th class="num">ROI %</th>
+        <th>Estado</th><th>Vencimiento</th>
+      </tr></thead>
+      <tbody id="tbody-prestamos"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══ PLAN DE PAGOS ══ -->
+<section class="tab-panel" id="tab-plan">
+  <div class="section-header">
+    <div>
+      <div class="section-title">Plan de Pagos</div>
+      <div class="section-sub">CRONOGRAMA DE CUOTAS · ESTADO POR CUOTA</div>
+    </div>
+    <button class="toggle-btn" onclick="toggleForm('form-cuota')">+ Nueva Cuota</button>
+  </div>
+  <div class="form-panel" id="form-cuota">
+    <div class="form-title">▌ Registrar Cuota</div>
+    <div class="form-grid">
+      <div class="form-group"><label>ID Cuota</label><input type="text" id="cu-id" placeholder="CU0009"></div>
+      <div class="form-group"><label>ID Préstamo</label>
+        <select id="cu-prestamo"><option value="">— Seleccionar —</option></select>
+      </div>
+      <div class="form-group"><label>N° Cuota</label><input type="number" id="cu-ncuota" placeholder="1"></div>
+      <div class="form-group"><label>Fecha Vencimiento</label><input type="date" id="cu-fecha"></div>
+      <div class="form-group"><label>Monto Cuota ($)</label><input type="number" id="cu-monto" placeholder="0"></div>
+      <div class="form-group"><label>Capital ($)</label><input type="number" id="cu-capital" placeholder="0"></div>
+      <div class="form-group"><label>Interés ($)</label><input type="number" id="cu-interes" placeholder="0"></div>
+      <div class="form-group"><label>Estado</label>
+        <select id="cu-estado">
+          <option value="Pendiente">Pendiente</option>
+          <option value="pagado">Pagado</option>
+          <option value="Atrasado">Atrasado</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="addCuota()">Agregar</button>
+      <button class="btn btn-ghost" onclick="toggleForm('form-cuota')">Cancelar</button>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>ID Cuota</th><th>ID Préstamo</th><th class="num">N° Cuota</th>
+        <th>Vencimiento</th><th class="num">Monto Cuota</th>
+        <th class="num">Capital</th><th class="num">Interés</th>
+        <th class="num">Saldo Rest.</th><th>Estado</th>
+      </tr></thead>
+      <tbody id="tbody-plan"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══ PAGOS REALIZADOS ══ -->
+<section class="tab-panel" id="tab-pagos">
+  <div class="section-header">
+    <div>
+      <div class="section-title">Pagos Realizados</div>
+      <div class="section-sub">REGISTRO DE COBROS · SEMÁFORO DE ATRASO</div>
+    </div>
+    <button class="toggle-btn" onclick="toggleForm('form-pago')">+ Registrar Pago</button>
+  </div>
+  <div class="form-panel" id="form-pago">
+    <div class="form-title">▌ Registrar Pago</div>
+    <div class="form-grid">
+      <div class="form-group"><label>ID Pago</label><input type="text" id="pg-id" placeholder="PG009"></div>
+      <div class="form-group"><label>ID Cuota</label>
+        <select id="pg-cuota"><option value="">— Seleccionar —</option></select>
+      </div>
+      <div class="form-group"><label>ID Préstamo</label><input type="text" id="pg-prestamo" placeholder="PR001" readonly style="opacity:.6"></div>
+      <div class="form-group"><label>Fecha Pago Real</label><input type="date" id="pg-fecha"></div>
+      <div class="form-group"><label>Monto Pagado ($)</label><input type="number" id="pg-monto" placeholder="0"></div>
+      <div class="form-group"><label>Método Pago</label>
+        <select id="pg-metodo">
+          <option>Transferencia</option><option>Efectivo</option><option>Cheque</option><option>Otro</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-green" onclick="addPago()">Registrar Cobro</button>
+      <button class="btn btn-ghost" onclick="toggleForm('form-pago')">Cancelar</button>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>ID Pago</th><th>ID Cuota</th><th>ID Préstamo</th>
+        <th>Fecha Pago</th><th class="num">Monto Pagado</th><th>Método</th>
+        <th class="num">Diferencia</th><th class="num">Días Atraso</th><th>Semáforo</th>
+      </tr></thead>
+      <tbody id="tbody-pagos"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══ INSTRUCCIONES ══ -->
+<section class="tab-panel" id="tab-instrucciones">
+  <div class="section-header">
+    <div>
+      <div class="section-title">Instrucciones</div>
+      <div class="section-sub">GUÍA DE USO · FÓRMULAS · ESCALABILIDAD</div>
+    </div>
+  </div>
+  <div class="inst-grid">
+    <div class="inst-card">
+      <div class="inst-num">01</div>
+      <div class="inst-title">Clientes</div>
+      <div class="inst-text">Ingresá cada cliente con ID único (ej: CL001). El Score se calcula automáticamente según % de cuotas atrasadas: <strong style="color:var(--green)">Verde 80–100</strong> / <strong style="color:var(--yellow)">Amarillo 50–79</strong> / <strong style="color:var(--red)">Rojo &lt;50</strong>.</div>
+    </div>
+    <div class="inst-card">
+      <div class="inst-num">02</div>
+      <div class="inst-title">Préstamos</div>
+      <div class="inst-text">Completá ID, Cliente, Fecha, Monto, Tasa mensual, Plazo, Tipo (Simple/Compuesto). El Monto Total y ROI se calculan automáticamente. Actualizá el Estado a Mora o Finalizado según corresponda.</div>
+    </div>
+    <div class="inst-card">
+      <div class="inst-num">03</div>
+      <div class="inst-title">Plan de Pagos</div>
+      <div class="inst-text">Cronograma de cuotas con amortización. Estado por cuota: Pendiente / Pagado / Atrasado. Actualizá el estado al registrar cada pago en la hoja correspondiente.</div>
+    </div>
+    <div class="inst-card">
+      <div class="inst-num">04</div>
+      <div class="inst-title">Pagos Realizados</div>
+      <div class="inst-text">Registrá cada cobro: ID cuota, fecha, monto, método. Los días de atraso y diferencia vs cuota se calculan solos. Semáforo: Al día / Leve ≤7d / Moderado ≤30d / Crítico +30d.</div>
+    </div>
+    <div class="inst-card">
+      <div class="inst-num">05</div>
+      <div class="inst-title">Dashboard</div>
+      <div class="inst-text">Todos los KPIs (ROI, mora, capital, ganancia) se actualizan en tiempo real al agregar o modificar datos. El resumen de préstamos muestra el estado completo de la cartera.</div>
+    </div>
+    <div class="inst-card">
+      <div class="inst-num">06</div>
+      <div class="inst-title">Escalabilidad</div>
+      <div class="inst-text">El sistema soporta +1000 préstamos. Todos los datos se guardan en LocalStorage del navegador. Para compartir entre dispositivos, exportar como JSON o conectar a Google Sheets.</div>
+    </div>
+  </div>
+  <div class="formula-box">
+    <div class="formula-title">▌ Fórmulas Clave</div>
+    <div class="formula-row"><span class="f-name">Interés Simple</span><span class="f-expr">Monto × (1 + TasaMensual/100 × PlazoMeses)</span></div>
+    <div class="formula-row"><span class="f-name">Interés Compuesto</span><span class="f-expr">Monto × (1 + TasaMensual/100) ^ PlazoMeses</span></div>
+    <div class="formula-row"><span class="f-name">ROI</span><span class="f-expr">(MontoTotal − MontoPrestado) / MontoPrestado × 100</span></div>
+    <div class="formula-row"><span class="f-name">Score Cliente</span><span class="f-expr">100 − (CuotasAtrasadas / TotalCuotas × 100)</span></div>
+    <div class="formula-row"><span class="f-name">Tasa Anual</span><span class="f-expr">TasaMensual × 12</span></div>
+    <div class="formula-row"><span class="f-name">ROI Anual proj.</span><span class="f-expr">ROI% / PlazoDías × 365</span></div>
+  </div>
+</section>
+
+</main>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// DEFAULT DATA
+// ═══════════════════════════════════════════════════════
+const DC = [
+  {id:"CL001",nombre:"Matias",  apellido:"Vallejo",   dni:"0"},
+  {id:"CL002",nombre:"Monica",  apellido:"Thoux",     dni:"0"},
+  {id:"CL003",nombre:"Pablo",   apellido:"gandini",   dni:"0"},
+  {id:"CL004",nombre:"Amiga",   apellido:"CARMEN",    dni:"0"},
+  {id:"CL005",nombre:"hijo",    apellido:"LAURA",     dni:"0"},
+  {id:"CL006",nombre:"Micaela Romina de los angeles",apellido:"Castañares",dni:"38332019"},
+];
+const DP = [
+  {id:"PR001",cliente:"CL001",fecha:"25/03/2026",monto:130000, tasa:20,  plazo:1,tipo:"simple",   estado:"inactivo",venc:"06/04/2026",plazo_dias:12},
+  {id:"PR002",cliente:"CL002",fecha:"25/03/2026",monto:450000, tasa:20,  plazo:1,tipo:"simple",   estado:"inactivo",venc:"10/04/2026",plazo_dias:16},
+  {id:"PR002",cliente:"CL002",fecha:"25/03/2026",monto:450000, tasa:20,  plazo:2,tipo:"simple",   estado:"activo",  venc:"10/05/2026",plazo_dias:46},
+  {id:"PR003",cliente:"CL003",fecha:"01/04/2026",monto:400000, tasa:0,   plazo:1,tipo:"simple",   estado:"inactivo",venc:"10/05/2026",plazo_dias:39},
+  {id:"PR004",cliente:"CL004",fecha:"06/04/2026",monto:400000, tasa:30,  plazo:1,tipo:"simple",   estado:"activo",  venc:"10/05/2026",plazo_dias:34},
+  {id:"PR005",cliente:"CL001",fecha:"06/04/2026",monto:170000, tasa:20,  plazo:1,tipo:"simple",   estado:"inactivo",venc:"10/05/2026",plazo_dias:34},
+  {id:"PR006",cliente:"CL005",fecha:"17/04/2026",monto:200000, tasa:27.5,plazo:2,tipo:"simple",   estado:"activo",  venc:"21/04/2026",plazo_dias:4},
+  {id:"PR007",cliente:"CL006",fecha:"23/04/2026",monto:50000,  tasa:40,  plazo:1,tipo:"simple",   estado:"activo",  venc:"01/05/2026",plazo_dias:8},
+];
+const DCU = [
+  {id:"CU0001",prestamo:"PR001",ncuota:1,fecha:"06/04/2026",monto:152000,capital:130000,interes:22000,saldo:0,     estado:"pagado"},
+  {id:"CU0002",prestamo:"PR002",ncuota:1,fecha:"10/04/2026",monto:540000,capital:450000,interes:90000,saldo:0,     estado:"pagado"},
+  {id:"CU0003",prestamo:"PR002",ncuota:2,fecha:"10/05/2026",monto:630000,capital:450000,interes:180000,saldo:null,estado:"Pendiente"},
+  {id:"CU0004",prestamo:"PR003",ncuota:1,fecha:"10/05/2026",monto:400000,capital:400000,interes:0,    saldo:0,     estado:"pagado"},
+  {id:"CU0005",prestamo:"PR004",ncuota:1,fecha:"10/05/2026",monto:520000,capital:400000,interes:120000,saldo:null,estado:"Pendiente"},
+  {id:"CU0006",prestamo:"PR006",ncuota:1,fecha:"10/05/2026",monto:310000,capital:200000,interes:110000,saldo:null,estado:"Pendiente"},
+  {id:"CU0007",prestamo:"PR005",ncuota:1,fecha:"21/04/2026",monto:204000,capital:170000,interes:34000,saldo:0,     estado:"pagado"},
+  {id:"CU0008",prestamo:"PR007",ncuota:1,fecha:"01/05/2026",monto:70000, capital:50000, interes:20000,saldo:null, estado:"Pendiente"},
+];
+const DPG = [
+  {id:"PG001",cuota:"CU0001",prestamo:"PR001",fecha:"06/04/2026",monto:152000,metodo:"Transferencia",diff:0,      atraso:0,sem:"Al día"},
+  {id:"PG002",cuota:"CU0002",prestamo:"PR002",fecha:"09/04/2026",monto:540000,metodo:"Transferencia",diff:0,      atraso:0,sem:"Al día"},
+  {id:"PG003",cuota:"CU0003",prestamo:"PR002",fecha:"10/05/2026",monto:0,     metodo:"Transferencia",diff:-630000,atraso:0,sem:"Al día"},
+  {id:"PG004",cuota:"CU0004",prestamo:"PR003",fecha:"10/05/2026",monto:400000,metodo:"Transferencia",diff:0,      atraso:0,sem:"Al día"},
+  {id:"PG005",cuota:"CU0005",prestamo:"PR004",fecha:"10/05/2026",monto:0,     metodo:"Transferencia",diff:-520000,atraso:0,sem:"Al día"},
+  {id:"PG006",cuota:"CU0006",prestamo:"PR006",fecha:"10/05/2026",monto:0,     metodo:"Transferencia",diff:-310000,atraso:0,sem:"Al día"},
+  {id:"PG007",cuota:"CU0007",prestamo:"PR005",fecha:"21/04/2026",monto:204000,metodo:"Transferencia",diff:0,      atraso:0,sem:"Al día"},
+  {id:"PG008",cuota:"CU0008",prestamo:"PR007",fecha:"01/05/2026",monto:0,     metodo:"Transferencia",diff:-70000, atraso:0,sem:"Al día"},
+];
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let SC = JSON.parse(localStorage.getItem('ct_clientes')||'null') || DC.map(r=>({...r}));
+let SP = JSON.parse(localStorage.getItem('ct_prestamos')||'null') || DP.map(r=>({...r}));
+let SCU= JSON.parse(localStorage.getItem('ct_cuotas')||'null') || DCU.map(r=>({...r}));
+let SPG= JSON.parse(localStorage.getItem('ct_pagos')||'null') || DPG.map(r=>({...r}));
+const save=()=>{
+  localStorage.setItem('ct_clientes',JSON.stringify(SC));
+  localStorage.setItem('ct_prestamos',JSON.stringify(SP));
+  localStorage.setItem('ct_cuotas',JSON.stringify(SCU));
+  localStorage.setItem('ct_pagos',JSON.stringify(SPG));
+};
+
+// ═══════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════
+const g=id=>document.getElementById(id);
+const fmt=(n,d=0)=>n==null?'—':Number(n).toLocaleString('es-AR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtM=n=>'$'+fmt(n);
+const fmtPct=n=>n==null?'—':Number(n).toFixed(1)+'%';
+
+function calcMontoTotal(monto,tasa,plazo,tipo){
+  if(tipo==='compuesto') return monto*Math.pow(1+tasa/100,plazo);
+  return monto*(1+tasa/100*plazo);
+}
+function getClienteName(id){
+  const c=SC.find(x=>x.id===id);
+  return c?`${c.apellido}, ${c.nombre}`:id;
+}
+function estadoBadge(e){
+  const m={activo:'b-activo',inactivo:'b-inactivo',mora:'b-mora',Mora:'b-mora'};
+  return `<span class="bt ${m[e]||'b-inactivo'}">${e}</span>`;
+}
+function cuotaBadge(e){
+  const m={pagado:'b-pagado',Pendiente:'b-pendiente',Atrasado:'b-atrasado'};
+  return `<span class="bt ${m[e]||'b-pendiente'}">${e}</span>`;
+}
+function semBadge(s){
+  const m={'Al día':'b-aldia',Leve:'b-leve',Moderado:'b-moderado',Crítico:'b-critico'};
+  return `<span class="bt ${m[s]||'b-aldia'}">${s}</span>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════
+function showTab(id){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  g('tab-'+id).classList.add('active');
+  [...document.querySelectorAll('.tab-btn')].find(b=>b.getAttribute('onclick').includes("'"+id+"'")).classList.add('active');
+}
+function toggleForm(id){g(id).classList.toggle('open');}
+
+// ═══════════════════════════════════════════════════════
+// CALC PREVIEW
+// ═══════════════════════════════════════════════════════
+function calcPreview(){
+  const monto=parseFloat(g('p-monto').value)||0;
+  const tasa=parseFloat(g('p-tasa').value)||0;
+  const plazo=parseInt(g('p-plazo').value)||0;
+  const tipo=g('p-tipo').value;
+  if(!monto||!plazo){g('calc-preview').classList.remove('show');return;}
+  const total=calcMontoTotal(monto,tasa,plazo,tipo);
+  const roi=monto>0?(total-monto)/monto*100:0;
+  g('calc-preview').innerHTML=`▶ Monto Total: <strong>${fmtM(total.toFixed(0))}</strong> · Interés: <strong>${fmtM((total-monto).toFixed(0))}</strong> · ROI: <strong>${roi.toFixed(1)}%</strong>`;
+  g('calc-preview').classList.add('show');
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER DASHBOARD
+// ═══════════════════════════════════════════════════════
+function renderDashboard(){
+  const capitalTotal=SP.reduce((s,r)=>s+r.monto,0);
+  const capitalRec=SPG.reduce((s,r)=>s+(r.monto||0),0);
+  const activos=SP.filter(r=>r.estado==='activo').length;
+  const roiArr=SP.filter(r=>r.monto>0).map(r=>{
+    const t=calcMontoTotal(r.monto,r.tasa,r.plazo,r.tipo);
+    return (t-r.monto)/r.monto*100;
+  });
+  const roiProm=roiArr.length?roiArr.reduce((a,b)=>a+b,0)/roiArr.length:0;
+  const ganTotal=SP.reduce((s,r)=>{
+    const t=calcMontoTotal(r.monto,r.tasa,r.plazo,r.tipo);
+    return s+(t-r.monto);
+  },0);
+  const enMora=SP.filter(r=>r.estado==='mora').length;
+  const pctMora=SP.length>0?enMora/SP.length*100:0;
+  const cuotasPend=SCU.filter(r=>r.estado==='Pendiente').length;
+  const cuotasAtras=SCU.filter(r=>r.estado==='Atrasado').length;
+
+  g('badge-activos').textContent=`${activos} activos`;
+  g('kpi-dash').innerHTML=[
+    {l:"Capital Total Prestado",v:fmtM(capitalTotal),cls:""},
+    {l:"Capital Recuperado",v:fmtM(capitalRec),cls:"green"},
+    {l:"ROI Promedio %",v:fmtPct(roiProm),cls:roiProm>=20?"green":roiProm>=10?"yellow":"red"},
+    {l:"Ganancia Total Esperada",v:fmtM(ganTotal),cls:"green"},
+    {l:"Préstamos Activos",v:activos,cls:""},
+    {l:"% Mora Cartera",v:fmtPct(pctMora),cls:pctMora>0?"red":pctMora>0.01?"yellow":"green"},
+    {l:"Cuotas Pendientes",v:cuotasPend,cls:cuotasPend>0?"yellow":"green"},
+    {l:"Cuotas Atrasadas",v:cuotasAtras,cls:cuotasAtras>0?"red":"green"},
+  ].map(k=>`<div class="kpi-card ${k.cls}"><div class="kpi-label">${k.l}</div><div class="kpi-value mono">${k.v}</div></div>`).join('');
+
+  const rows=SP.map(r=>{
+    const total=calcMontoTotal(r.monto,r.tasa,r.plazo,r.tipo);
+    const roi=r.monto>0?(total-r.monto)/r.monto*100:0;
+    const cuPend=SCU.filter(c=>c.prestamo===r.id&&c.ncuota===r.plazo&&c.estado==='Pendiente').length;
+    const saldo=SCU.filter(c=>c.prestamo===r.id).reduce((s,c)=>s+(c.saldo||0),0);
+    const rbc=roi>=30?'':roi>=15?'med':'low';
+    return `<tr>
+      <td class="mono">${r.id}</td>
+      <td>${getClienteName(r.cliente)}</td>
+      <td class="num">${fmtM(r.monto)}</td>
+      <td class="num">${fmtPct(r.tasa)}</td>
+      <td class="muted">${r.plazo} mes${r.plazo>1?'es':''}</td>
+      <td><span class="bt b-simple">${r.tipo}</span></td>
+      <td class="num" style="font-weight:500">${fmtM(total.toFixed(0))}</td>
+      <td><div class="roi-bar"><div class="bar-track"><div class="bar-fill ${rbc}" style="width:${Math.min(roi,100)}%"></div></div><span class="bar-val">${roi.toFixed(0)}%</span></div></td>
+      <td>${estadoBadge(r.estado)}</td>
+      <td class="num">${cuPend||'—'}</td>
+      <td class="num">${saldo?fmtM(saldo):'—'}</td>
+    </tr>`;
+  });
+  g('tbody-dash').innerHTML=rows.join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER CLIENTES
+// ═══════════════════════════════════════════════════════
+function renderClientes(){
+  const rows=SC.map(c=>{
+    const prests=SP.filter(p=>p.cliente===c.id);
+    const capital=prests.reduce((s,p)=>s+p.monto,0);
+    const cuotas=SCU.filter(cu=>prests.some(p=>p.id===cu.prestamo));
+    const pend=cuotas.filter(cu=>cu.estado==='Pendiente').length;
+    const atras=cuotas.filter(cu=>cu.estado==='Atrasado').length;
+    const total=cuotas.length;
+    const score=total>0?Math.round(100-atras/total*100):100;
+    const sdot=score>=80?'dot-green':score>=50?'dot-yellow':'dot-red';
+    return `<tr>
+      <td class="mono">${c.id}</td>
+      <td>${c.nombre}</td><td>${c.apellido}</td>
+      <td class="mono">${c.dni||'—'}</td>
+      <td class="num">${prests.length}</td>
+      <td class="num">${fmtM(capital)}</td>
+      <td class="num">${pend||'—'}</td>
+      <td class="num">${atras||'—'}</td>
+      <td><span class="score-dot ${sdot}"></span><span style="font-family:var(--mono);font-size:.75rem">${score}</span></td>
+    </tr>`;
+  });
+  g('tbody-clientes').innerHTML=rows.join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER PRÉSTAMOS
+// ═══════════════════════════════════════════════════════
+function renderPrestamos(){
+  const sel=g('p-cliente');
+  sel.innerHTML='<option value="">— Seleccionar —</option>'+SC.map(c=>`<option value="${c.id}">${c.apellido}, ${c.nombre}</option>`).join('');
+
+  let totMonto=0,totTotal=0;
+  const rows=SP.map(r=>{
+    const total=calcMontoTotal(r.monto,r.tasa,r.plazo,r.tipo);
+    const roi=r.monto>0?(total-r.monto)/r.monto*100:0;
+    totMonto+=r.monto; totTotal+=total;
+    return `<tr>
+      <td class="mono">${r.id}</td>
+      <td>${getClienteName(r.cliente)}</td>
+      <td class="mono">${r.fecha}</td>
+      <td class="num">${fmtM(r.monto)}</td>
+      <td class="num">${fmtPct(r.tasa)}</td>
+      <td class="num">${fmtPct(r.tasa*12)}</td>
+      <td class="num">${r.plazo} mes${r.plazo>1?'es':''}</td>
+      <td><span class="bt ${r.tipo==='compuesto'?'b-compuesto':'b-simple'}">${r.tipo}</span></td>
+      <td class="num" style="font-weight:500">${fmtM(total.toFixed(0))}</td>
+      <td class="num" style="color:var(--green)">${roi.toFixed(1)}%</td>
+      <td>${estadoBadge(r.estado)}</td>
+      <td class="mono muted">${r.venc}</td>
+    </tr>`;
+  });
+  const totRoi=totMonto>0?(totTotal-totMonto)/totMonto*100:0;
+  rows.push(`<tr class="total-row"><td colspan="3"><strong>TOTALES</strong></td><td class="num">${fmtM(totMonto)}</td><td colspan="4"></td><td class="num">${fmtM(totTotal.toFixed(0))}</td><td class="num">${totRoi.toFixed(1)}%</td><td colspan="2"></td></tr>`);
+  g('tbody-prestamos').innerHTML=rows.join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER PLAN PAGOS
+// ═══════════════════════════════════════════════════════
+function renderPlan(){
+  const sel=g('cu-prestamo');
+  sel.innerHTML='<option value="">— Seleccionar —</option>'+[...new Set(SP.map(p=>p.id))].map(id=>`<option value="${id}">${id}</option>`).join('');
+
+  let totMonto=0,totCap=0,totInt=0;
+  const rows=SCU.map(r=>{
+    totMonto+=r.monto; totCap+=r.capital; totInt+=r.interes;
+    return `<tr>
+      <td class="mono">${r.id}</td>
+      <td class="mono">${r.prestamo}</td>
+      <td class="num">${r.ncuota}</td>
+      <td class="mono">${r.fecha}</td>
+      <td class="num" style="font-weight:500">${fmtM(r.monto)}</td>
+      <td class="num">${fmtM(r.capital)}</td>
+      <td class="num" style="color:var(--green)">${fmtM(r.interes)}</td>
+      <td class="num">${r.saldo!=null?fmtM(r.saldo):'—'}</td>
+      <td>${cuotaBadge(r.estado)}</td>
+    </tr>`;
+  });
+  rows.push(`<tr class="total-row"><td colspan="4"><strong>TOTALES</strong></td><td class="num">${fmtM(totMonto)}</td><td class="num">${fmtM(totCap)}</td><td class="num">${fmtM(totInt)}</td><td colspan="2"></td></tr>`);
+  g('tbody-plan').innerHTML=rows.join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER PAGOS
+// ═══════════════════════════════════════════════════════
+function renderPagos(){
+  const selCuota=g('pg-cuota');
+  selCuota.innerHTML='<option value="">— Seleccionar —</option>'+SCU.filter(c=>c.estado==='Pendiente').map(c=>`<option value="${c.id}">${c.id} (${c.prestamo})</option>`).join('');
+  selCuota.onchange=()=>{
+    const cu=SCU.find(c=>c.id===selCuota.value);
+    if(cu){g('pg-prestamo').value=cu.prestamo;}
+  };
+
+  let totPag=0;
+  const rows=SPG.map(r=>{
+    totPag+=r.monto||0;
+    return `<tr>
+      <td class="mono">${r.id}</td>
+      <td class="mono">${r.cuota}</td>
+      <td class="mono">${r.prestamo}</td>
+      <td class="mono">${r.fecha}</td>
+      <td class="num" style="font-weight:500">${r.monto?fmtM(r.monto):'—'}</td>
+      <td><span class="bt b-transferencia">${r.metodo}</span></td>
+      <td class="num" style="${r.diff<0?'color:var(--red)':r.diff>0?'color:var(--green)':''}">${r.diff?fmtM(r.diff):'—'}</td>
+      <td class="num">${r.atraso>0?r.atraso+'d':'—'}</td>
+      <td>${semBadge(r.sem)}</td>
+    </tr>`;
+  });
+  rows.push(`<tr class="total-row"><td colspan="4"><strong>TOTALES</strong></td><td class="num">${fmtM(totPag)}</td><td colspan="4"></td></tr>`);
+  g('tbody-pagos').innerHTML=rows.join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// ADD ROWS
+// ═══════════════════════════════════════════════════════
+function addCliente(){
+  const id=g('c-id').value.trim();
+  const nombre=g('c-nombre').value.trim();
+  const apellido=g('c-apellido').value.trim();
+  if(!id||!nombre){alert('ID y nombre requeridos.');return;}
+  SC.push({id,nombre,apellido,dni:g('c-dni').value.trim()||'0'});
+  save();renderAll();toggleForm('form-cliente');
+  ['c-id','c-nombre','c-apellido','c-dni'].forEach(x=>g(x).value='');
+}
+
+function addPrestamo(){
+  const id=g('p-id').value.trim();
+  const cliente=g('p-cliente').value;
+  const monto=parseFloat(g('p-monto').value)||0;
+  const tasa=parseFloat(g('p-tasa').value)||0;
+  const plazo=parseInt(g('p-plazo').value)||1;
+  if(!id||!cliente||!monto){alert('ID, cliente y monto son requeridos.');return;}
+  const fecha=g('p-fecha').value?g('p-fecha').value.split('-').reverse().join('/'):new Date().toLocaleDateString('es-AR');
+  const tipo=g('p-tipo').value;
+  const estado=g('p-estado').value;
+  // calcular vencimiento
+  const fd=g('p-fecha').value?new Date(g('p-fecha').value):new Date();
+  fd.setMonth(fd.getMonth()+plazo);
+  const venc=fd.toLocaleDateString('es-AR');
+  const plazo_dias=plazo*30;
+  SP.push({id,cliente,fecha,monto,tasa,plazo,tipo,estado,venc,plazo_dias});
+  save();renderAll();toggleForm('form-prestamo');g('calc-preview').classList.remove('show');
+  ['p-id','p-monto','p-tasa','p-plazo'].forEach(x=>g(x).value='');
+}
+
+function addCuota(){
+  const id=g('cu-id').value.trim();
+  const prestamo=g('cu-prestamo').value;
+  const ncuota=parseInt(g('cu-ncuota').value)||1;
+  const monto=parseFloat(g('cu-monto').value)||0;
+  if(!id||!prestamo){alert('ID y préstamo requeridos.');return;}
+  const fecha=g('cu-fecha').value?g('cu-fecha').value.split('-').reverse().join('/'):'—';
+  SCU.push({id,prestamo,ncuota,fecha,monto,capital:parseFloat(g('cu-capital').value)||0,interes:parseFloat(g('cu-interes').value)||0,saldo:null,estado:g('cu-estado').value});
+  save();renderAll();toggleForm('form-cuota');
+  ['cu-id','cu-ncuota','cu-monto','cu-capital','cu-interes'].forEach(x=>g(x).value='');
+}
+
+function addPago(){
+  const id=g('pg-id').value.trim();
+  const cuota=g('pg-cuota').value;
+  const monto=parseFloat(g('pg-monto').value)||0;
+  if(!id||!cuota){alert('ID y cuota requeridos.');return;}
+  const cu=SCU.find(c=>c.id===cuota);
+  const fecha=g('pg-fecha').value?g('pg-fecha').value.split('-').reverse().join('/'):'—';
+  const diff=cu?monto-cu.monto:0;
+  // calcular atraso
+  let atraso=0;
+  if(cu&&g('pg-fecha').value&&cu.fecha&&cu.fecha!=='—'){
+    const fv=cu.fecha.split('/').reverse().join('-');
+    const fp=g('pg-fecha').value;
+    atraso=Math.max(0,Math.round((new Date(fp)-new Date(fv))/(1000*60*60*24)));
+  }
+  const sem=atraso===0?'Al día':atraso<=7?'Leve':atraso<=30?'Moderado':'Crítico';
+  SPG.push({id,cuota,prestamo:g('pg-prestamo').value,fecha,monto,metodo:g('pg-metodo').value,diff,atraso,sem});
+  // marcar cuota como pagada
+  const cuObj=SCU.find(c=>c.id===cuota);
+  if(cuObj&&monto>0){cuObj.estado='pagado';cuObj.saldo=0;}
+  save();renderAll();toggleForm('form-pago');
+  ['pg-id','pg-monto','pg-prestamo'].forEach(x=>g(x).value='');
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+function renderAll(){
+  renderDashboard();
+  renderClientes();
+  renderPrestamos();
+  renderPlan();
+  renderPagos();
+}
+renderAll();
+</script>
+</body>
+</html>
